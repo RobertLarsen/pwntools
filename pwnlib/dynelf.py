@@ -76,7 +76,7 @@ def sysv_hash(symbol):
     h = 0
     g = 0
     for c in symbol:
-        h = (h << 4) + ord(c)
+        h = (h << 4) + c
         g = h & 0xf0000000
         h ^= (g >> 24)
         h &= ~g
@@ -89,7 +89,7 @@ def gnu_hash(s):
     """
     h = 5381
     for c in s:
-        h = h * 33 + ord(c)
+        h = h * 33 + c
     return h & 0xffffffff
 
 class DynELF(object):
@@ -549,6 +549,10 @@ class DynELF(object):
             self.failure("Must specify a library or symbol")
 
         self.waitfor('Resolving %s' % pretty)
+        if type(lib) == str:
+            lib = lib.encode('ascii')
+        if type(symb) == str:
+            symb = symb.encode('ascii')
 
         #
         # If we are loading from a different library, create
@@ -641,7 +645,7 @@ class DynELF(object):
             p_name = leak.field(cur, LinkMap.l_name)
             name   = leak.s(p_name)
 
-            if libname.encode('utf-8') in name:
+            if libname in name:
                 break
 
             if name:
@@ -740,7 +744,6 @@ class DynELF(object):
 
                 # Leak the name of the function from the symbol table
                 name = leak.s(strtab + leak.field(sym, Sym.st_name))
-                name = name.decode('utf-8')
 
                 # Make sure it matches the name of the symbol we were looking for.
                 if name == symb:
@@ -824,7 +827,6 @@ class DynELF(object):
                 # Check for collision on hash values
                 sym  = symtab + sizeof(Sym) * (ndx + i)
                 name = leak.s(strtab + leak.field(sym, Sym.st_name))
-                name = name.decode('utf-8')
 
                 if name == symb:
                     # No collision, get offset and calculate address
@@ -859,7 +861,7 @@ class DynELF(object):
             if self.leak.compare(address + 0xC, b"GNU\x00"):
                 return enhex(b''.join(self.leak.raw(address + 0x10, 20)))
             else:
-                self.status("Build ID not found at offset %#x" % offset)
+                self.status("Magic did not match")
                 pass
 
     def _make_absolute_ptr(self, ptr_or_offset):
