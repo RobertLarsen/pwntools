@@ -72,6 +72,9 @@ def main(args):
             log.critical('Subpattern must be %d bytes' % subsize)
             sys.exit(1)
 
+        if type(pat) == str:
+            pat = pat.encode('ascii')
+
         if not all(chr(c) in alphabet for c in pat):
             log.critical('Pattern contains characters not present in the alphabet')
             sys.exit(1)
